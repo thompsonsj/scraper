@@ -1,64 +1,90 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
+# Sitemap scraper
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sitemap scraper is a Laravel 9 application designed to be run from the command line. 
 
-## About Laravel
+It uses a given sitemap to parse HTML content for each URL and reports on attributes as specified in the command. Commands are designed to be as flexible as possible using CSS style selectors.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+It can output to either the console or an Excel spreadsheet.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Overview
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The custom [Laravel Artisan Console](https://laravel.com/docs/artisan) `scraper` command can be used to audit content on either a local build of a website or on production.
 
-## Learning Laravel
+Each command audits pages by pulling the sitemap, converting URLs to local, and parsing each page.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Initial configuration
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+In your `.env` file:
 
-## Laravel Sponsors
+Required:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+- Set `SITEMAP_URL` to the URL of your sitemap. This can be local or on production. See following options.
 
-### Premium Partners
+Optional:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+- Set `CONVERT_SITEMAP_TO_LOCAL_URLS` to `true` to replace all occurences of your production domain with your local domain in the sitemap. This is useful if your sitemap always reports production URLs, which is a common scenario.
 
-## Contributing
+`CONVERT_SITEMAP_TO_LOCAL_URLS` requires the following two settings to perform the string replacement:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- Set `PRODUCTION_DOMAIN` to the domain of your live site. e.g. `https://www.example.com`.
+- Set `LOCAL_DOMAIN` to the domain of your local site. e.g. `http://localhost:3000`.
 
-## Code of Conduct
+## Common options
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Each command can accept the following options.
 
-## Security Vulnerabilities
+| Option | Description |
+| ------ | ----------- |
+| `--startsWith=` | Filter results by the start of each URL. Useful for locales, or specific directories. Forward slash not needed at the start. e.g. `--startsWith=se`. |
+| `--output=xlsx` | Output results to an Excel spreadsheet file in the local `storage/app` directory. Unique filenames are generated for each report based on the date and selector, e.g. `2022-03-31-140453-h1-report.xlsx`. |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Examples
 
-## License
+```bash
+# Report all h1 elements
+php artisan scraper:selector "h1"
+# Report all h1 elements in the Swedish locale an Excel spreadsheet
+php artisan scraper:selector "h1" --locale=se --output=xlsx
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## CSS Selector
+
+Use the `php artisan scraper:selector` command to retrieve a report on elements based on a CSS selector.
+
+Each result contains:
+
+- **Element**: The HTML tag name.
+- **Parent elements**: Parent HTML tag names in order.
+- **Child elements**: Child HTML tag names in order.
+- **Text**: Text content of the element.
+- **Class**: Class names on the element. Note: Alternative attributes can be reported using the `--attrs` option.
+
+### Options
+
+In addition to the common options, you may pass an `attrs` argument of comma-separated values to retrieve additional attribute values on HTML elements. The default value is `class`.
+
+| Option | Description |
+| ------ | ----------- |
+| `--attrs=` | Pass an `attrs` argument of comma-separated values to retrieve additional attribute values on HTML elements. The default value is `class`. e.g. `--attrs=class,data-test-id`. |
+| `--showRelations` | Include this switch to show information about parent and child elements. |
+| `--relationAttrs` | Pass a `relationAttrs` argument of comma-separated values to retrieve additional attribute values on relation HTML elements. The default value is `class`. e.g. `--relationAttrs=class,data-test-id`. |
+
+```bash
+php artisan scraper:selector "h1" --attrs=class,data-test-id
+```
+
+### More examples
+
+Complex CSS selectors can be used.
+
+#### Report all elements using one of Tailwind CSS's display utility classes
+
+```bash
+php artisan scraper:selector ".block, .inline-block, .inline, .flex"
+```
+
+#### Report on all meta descriptions
+
+```bash
+php artisan scraper:selector "meta[name='description']"  --attrs=content
+```
